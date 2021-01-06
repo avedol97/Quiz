@@ -35,24 +35,13 @@ class Home extends Component {
         })
     }
 
-    getCurrentDate = () => {
 
-        const date = new Date().getDate();
-        const month = new Date().getMonth() + 1;
-        const year = new Date().getFullYear();
-
-        const fullDate = year + '-' + month + '-' + date;
-        this.setState({
-            CurrentDate: fullDate
-        })
-    }
 
 
     getData = async () => {
         if (await NetInfo.fetch().then(state => {
             return state.isConnected
         }) === true) {
-            console.log(await this.getSql());
             fetch('http://tgryl.pl/quiz/tests', {
                 method: 'GET'
             })
@@ -83,7 +72,7 @@ class Home extends Component {
                 for (let i = 0; i < results.rows.length; i++) {
                     users.push(await results.rows.item(i));
                     console.log(users[i]);
-                    //this.setState({date:users})
+                    this.setState({date:users})
                 }
             });
         });
@@ -95,7 +84,7 @@ class Home extends Component {
             tx.executeSql('DROP TABLE IF EXISTS dane', []);
             tx.executeSql('CREATE TABLE IF NOT EXISTS dane (id TEXT ,name TEXT ,description TEXT ,tags TEXT ,level TEXT ,numberOfTasks INTEGER );', []);
             this.state.date.map((test) => {
-                tx.executeSql('INSERT INTO dane (id,name,description,tags,level,numberOfTasks) VALUES  (?,?,?,?,?,?);', [test.id, test.name, test.description, JSON.stringify(test.tags), test.level, test.numberOfTasks],
+                tx.executeSql('INSERT INTO dane (id,name,description,tags,level,numberOfTasks) VALUES  (?,?,?,?,?,?);', [test.id, test.name, test.description,test.tags.toString(), test.level, test.numberOfTasks],
                     (tx, results) => {
                         console.log("Results", results.rowsAffected);
                     },
@@ -103,15 +92,6 @@ class Home extends Component {
                         console.error(err);
                     });
             })
-            tx.executeSql('SELECT * FROM dane', [], (tx, results) => {
-                let users = [];
-                console.log(results.rows.length);
-                for (let i = 0; i < results.rows.length; i++) {
-                    users.push(results.rows.item(i));
-                    console.log(users[i]);
-                    this.setState({sql: users})
-                }
-            });
         });
     }
 
@@ -129,13 +109,19 @@ class Home extends Component {
 
         await this.getData();
 
-        if (!this.state.isConnected) {
-            await this.getSql();
-        }
-
             SplashScreen.hide();
     }
 
+
+    getCurrentDate = () => {
+        const date = new Date().getDate();
+        const month = new Date().getMonth() + 1;
+        const year = new Date().getFullYear();
+        const fullDate = year + '-' + month + '-' + date;
+        this.setState({
+            CurrentDate: fullDate
+        })
+    }
 
     render() {
         if (this.state.isLoading) {
@@ -146,7 +132,7 @@ class Home extends Component {
                 if (this.state.isConnected) {
                     zmienna = val.tags;
                 } else {
-                    zmienna = JSON.parse(val.tags)
+                    zmienna = val.tags.split(",");
                 }
                 return (
                     <View key={key}>

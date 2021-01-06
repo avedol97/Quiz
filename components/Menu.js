@@ -11,6 +11,7 @@ import Home from './Home';
 import SplashScreen from "react-native-splash-screen";
 import SQLite from "react-native-sqlite-storage";
 const _ = require("lodash");
+import NetInfo from '@react-native-community/netinfo'
 let db;
 class Menu extends Component {
 
@@ -36,43 +37,75 @@ class Menu extends Component {
     }
 
     componentDidMount = () => {
-        this.getSql();
+        this.getData()
         this.GenerateRandomNumber();
         SplashScreen.hide();
-        this.getData();
+        ;
     }
 
-    getData = () =>{
-        fetch('http://tgryl.pl/quiz/tests', {
-            method: 'GET'
-        })
-            .then((response) => response.json())
-            .then((responseJson) => {
-                this.setState({
-                    date: _.shuffle(responseJson),
-                    isLoading: false,
-                })
-            })
-            .catch((error) => {
-                console.error(error);
-            });}
+    // getData = () =>{
+    //     fetch('http://tgryl.pl/quiz/tests', {
+    //         method: 'GET'
+    //     })
+    //         .then((response) => response.json())
+    //         .then((responseJson) => {
+    //             this.setState({
+    //                 date: _.shuffle(responseJson),
+    //                 isLoading: false,
+    //             })
+    //         })
+    //         .catch((error) => {
+    //             console.error(error);
+    //         });}
+    //
+    // showAlert = () =>{
+    //     alert("Zaaktualizowano Testy!");
+    // }
 
-    showAlert = () =>{
+
+    showAlert = () => {
         alert("Zaaktualizowano Testy!");
     }
 
-    getSql=()=>{
-        db.transaction((tx) => {
-            tx.executeSql('SELECT * FROM dane', [], (tx, results) => {
-                let users = [];
+    getData = async () => {
+        if (await NetInfo.fetch().then(state => {
+            return state.isConnected
+        }) === true) {
+            fetch('http://tgryl.pl/quiz/tests', {
+                method: 'GET'
+            })
+                .then((response) => response.json())
+                .then((responseJson) => {
+                    this.setState({
+                        date: _.shuffle(responseJson),
+                        isLoading: false,
+                        isConnected: true,
+                    })
+                })
+                .catch((error) => {
+                    console.error(error);
+                });
+        } else {
+            this.setState({
+                isLoading: false,
+                date: await this.getSql(),
+            });
+        }
+    }
+
+    getSql = async () => {
+        let users = [];
+        await db.transaction(async (tx) => {
+            await tx.executeSql('SELECT * FROM dane', [], async (tx, results) => {
                 console.log(results.rows.length);
                 for (let i = 0; i < results.rows.length; i++) {
-                    users.push(results.rows.item(i));
+                    users.push(await results.rows.item(i));
                     console.log(users[i]);
                     this.setState({date:users})
                 }
             });
         });
+        return users;
     }
 
 render() {
