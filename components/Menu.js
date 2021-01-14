@@ -43,24 +43,6 @@ class Menu extends Component {
         ;
     }
 
-    // getData = () =>{
-    //     fetch('http://tgryl.pl/quiz/tests', {
-    //         method: 'GET'
-    //     })
-    //         .then((response) => response.json())
-    //         .then((responseJson) => {
-    //             this.setState({
-    //                 date: _.shuffle(responseJson),
-    //                 isLoading: false,
-    //             })
-    //         })
-    //         .catch((error) => {
-    //             console.error(error);
-    //         });}
-    //
-    // showAlert = () =>{
-    //     alert("Zaaktualizowano Testy!");
-    // }
 
 
     showAlert = () => {

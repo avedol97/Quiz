@@ -10,7 +10,6 @@ import Top from './Top';
 import SplashScreen from 'react-native-splash-screen'
 import Result from "./Result";
 import Tests from "./Tests";
-
 const _ = require("lodash");
 import NetInfo from '@react-native-community/netinfo'
 import SQLite from 'react-native-sqlite-storage';
@@ -32,10 +31,50 @@ class Home extends Component {
             name: 'database',
             location: 'default',
             createFromLocation: '~database.db',
-        })
+        });this.getDB();
     }
 
 
+    getDetails = async () =>{
+        this.state.date.map((test) =>{
+        fetch('http://tgryl.pl/quiz/test/'+ test.id)
+            .then((response) => response.json())
+            .then((responseJson) => {
+                db.transaction((tx) => {
+                    //tx.executeSql('DROP TABLE  IF EXISTS krystian');
+                    tx.executeSql('CREATE TABLE IF NOT EXISTS krystian (id TEXT,tasks TEXT);', []);
+                    tx.executeSql('SELECT id FROM krystian WHERE id=? ',[test.id], (tx, results) => {
+                        if(results.rows.length ===0){
+                            tx.executeSql('INSERT INTO krystian (id,tasks) VALUES  (?,?);', [test.id,JSON.stringify(responseJson.tasks)],
+                                (tx, results) => {
+                                    console.log("Results", results.rowsAffected);
+                                },
+                                (err) => {
+                                    console.error(err);
+                                });
+                        }
+                    },)
+                });
+            })
+            .catch((error) => {
+                console.error(error);
+            })
+        })
+    }
+
+    getDB = () => {
+        let users = [];
+        db.transaction( (tx) => {
+            tx.executeSql('SELECT * FROM krystian', [], (tx, results) => {
+                console.log(results.rows.length);
+                for (let i = 0; i < results.rows.length; i++) {
+                    users.push(results.rows.item(i).id);
+                    console.log(users[i]);
+                }
+            });
+        });
+        return users;
+    }
 
 
     getData = async () => {
@@ -51,7 +90,7 @@ class Home extends Component {
                         date: _.shuffle(responseJson),
                         isLoading: false,
                         isConnected: true,
-                    })
+                    }, () => {this.getDetails()})
                 })
                 .catch((error) => {
                     console.error(error);
@@ -106,9 +145,7 @@ class Home extends Component {
         } else {
             console.log("Już zapisano do bazy!")
         }
-
         await this.getData();
-
             SplashScreen.hide();
     }
 

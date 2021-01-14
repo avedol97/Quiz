@@ -6,9 +6,10 @@ import {
 } from 'react-native';
 import Quest from "./Quest";
 const _ = require("lodash");
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo'
+import SQLite from "react-native-sqlite-storage";
 
-
+let db;
 
 class Tests extends Component {
 
@@ -21,10 +22,11 @@ class Tests extends Component {
             index : 0,
             timer : 5,
             bar: 1,
+            sql:null,
             CurrentDate:'date',
             nick : "nilson",
             tests: {
-                question: "",
+                question: "hahahahh",
                 "answers": [
                     {
                         "content": "Loading...",
@@ -46,36 +48,26 @@ class Tests extends Component {
                 duration: 30,
             },
             loaded: false
-        }
+        };
+        db = SQLite.openDatabase({
+            name: 'database',
+            location: 'default',
+            createFromLocation: '~database.db',
+        })
     }
 
 
+    getDB = (id) => {
+        db.transaction( (tx) => {
+            tx.executeSql('SELECT * FROM krystian WHERE id = ?', [id], (tx, results) => {
+                console.log("Results", results.rows.length);
+                console.log(JSON.parse(results.rows.item(0).tasks));
+                this.setState({tests:JSON.parse(results.rows.item(0).tasks)},()=>{this.setState({loaded:true,timer:30})})
 
-
-    render() {
-        return (
-            <View>
-                {!this.state.loaded ? <Text>loading</Text> : ( <View style={styles.container}>
-                    <Quest answerA={this.state.tests[this.state.index].answers[0].content}
-                           answerB={this.state.tests[this.state.index].answers[1].content}
-                           answerC={this.state.tests[this.state.index].answers[2].content}
-                           answerD={(this.state.tests[this.state.index].answers.length > 3 ) && this.state.tests[this.state.index].answers[3].content}
-                           question={this.state.tests[this.state.index].question}
-                           que={this.state.index + 1}
-                           time={this.state.timer}
-                           fun0={() => {this.goOn(this.state.tests[this.state.index].answers[0].isCorrect)}}
-                           fun1={() => {this.goOn(this.state.tests[this.state.index].answers[1].isCorrect)}}
-                           fun2={() => {this.goOn(this.state.tests[this.state.index].answers[2].isCorrect)}}
-                           fun3={() => {this.goOn(this.state.tests[this.state.index].answers[3].isCorrect)}}
-                           ruszaj={this.state.bar}
-                           length={this.state.tests.length}
-                           test="Sports"
-                           navigation={this.props.navigation}
-                    />
-
-                </View>)}</View>
-        )
+            });
+        })
     }
+
 
     postDate = () => {
         fetch('http://tgryl.pl/quiz/result',{
@@ -105,7 +97,7 @@ class Tests extends Component {
                 },()=>this.componentDidMount() )
             }
             if(isCorrect) {
-              await this.setState({
+                await this.setState({
                     score:this.state.score+1,
 
                 })
@@ -155,13 +147,6 @@ class Tests extends Component {
             })),
             1000
         );
-    const dateStorage = await AsyncStorage.getItem("UpdateDate");
-    if(dateStorage != this.state.CurrentDate){
-        //zapisz do lolalnej bazy danych
-        await AsyncStorage.setItem("UpdateDate",this.state.CurrentDate);
-    }else {
-        console.log("Już zapisano do bazy!")
-    }
 
 
     }
@@ -178,8 +163,11 @@ class Tests extends Component {
     }
 
 
-    getDate  =  ()  =>{
+    getDate  = async ()  =>{
         const {id} =this.props.route.params
+        if (await NetInfo.fetch().then(state => {
+            return state.isConnected
+        }) === true) {
        fetch('http://tgryl.pl/quiz/test/'+ id)
             .then((response) => response.json())
             .then((responseJson) => {
@@ -188,17 +176,47 @@ class Tests extends Component {
                     tests: _.shuffle(responseJson.tasks),
                     loaded:true,
                     timer:responseJson.tasks[0].duration,
-                } );
+                },()=>{} );
             })
             .catch((error) => {
                 console.error(error);
             })
-
-
+    }else{
+            this.getDB(id);
     }
 
+}
+
+
+    render() {
+        return (
+            <View>
+                {!this.state.loaded ? <Text>loading</Text> : ( <View style={styles.container}>
+                    <Quest answerA={this.state.tests[this.state.index].answers[0].content}
+                           answerB={this.state.tests[this.state.index].answers[1].content}
+                           answerC={this.state.tests[this.state.index].answers[2].content}
+                           answerD={(this.state.tests[this.state.index].answers.length > 3 ) && this.state.tests[this.state.index].answers[3].content}
+                           question={this.state.tests[this.state.index].question}
+                           que={this.state.index + 1}
+                           time={this.state.timer}
+                           fun0={() => {this.goOn(this.state.tests[this.state.index].answers[0].isCorrect)}}
+                           fun1={() => {this.goOn(this.state.tests[this.state.index].answers[1].isCorrect)}}
+                           fun2={() => {this.goOn(this.state.tests[this.state.index].answers[2].isCorrect)}}
+                           fun3={() => {this.goOn(this.state.tests[this.state.index].answers[3].isCorrect)}}
+                           ruszaj={this.state.bar}
+                           length={this.state.tests.length}
+                           test="Sports"
+                           navigation={this.props.navigation}
+                    />
+
+                </View>)}</View>
+        )
+    }
 
 }
+
+
+
 const styles=StyleSheet.create({
     container:{
         height:"80%",
