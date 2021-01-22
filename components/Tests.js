@@ -205,7 +205,7 @@ class Tests extends Component {
                            fun3={() => {this.goOn(this.state.tests[this.state.index].answers[3].isCorrect)}}
                            ruszaj={this.state.bar}
                            length={this.state.tests.length}
-                           test="Sports"
+                           test="Test"
                            navigation={this.props.navigation}
                     />
 
